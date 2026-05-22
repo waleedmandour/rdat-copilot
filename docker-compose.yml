@@ -1,0 +1,42 @@
+# ── RDAT Copilot — Docker Compose ──────────────────────────────────
+#
+# Local development and deployment with Docker.
+# Starts the FastAPI backend with Ollama integration.
+#
+# Usage:
+#   docker compose up -d          # Start backend
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop
+#
+# The frontend is deployed as a static site on GitHub Pages.
+# The backend runs locally (Docker) and connects to the host's Ollama.
+#
+# Phase 3: CI/CD & Deployment
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rdat-copilot-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - rdat-data:/data
+    environment:
+      - RDAT_DB_PATH=/data/rdat_copilot.db
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:7b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r = httpx.get('http://localhost:8000/health'); r.raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  rdat-data:
+    driver: local

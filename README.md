@@ -34,27 +34,39 @@ RDAT Copilot uses a cascading multi-channel architecture that delivers instant s
 │                   Ghost Text Provider (Monaco)                    │
 │                                                                   │
 │  0ms ───────▶  Channel 0: LTE (Local Translation Engine)         │
-│                 • Synchronous, <50ms                              │
+│                 • Synchronous, <5ms                               │
 │                 • Exact → Partial → N-gram matching               │
 │                 • Smart Remainder prefix completion               │
 │                                                                   │
-│  0ms ───────▶  Channel 3: Prefetch Cache                          │
-│                 • requestIdleCallback queued translations         │
-│                 • Lines N+1, N+2 translated in background         │
+│  ~50ms ─────▶  Channel 1: RAG (Backend SQLite + FTS5)            │
+│                 • FastAPI backend at localhost:8000                │
+│                 • FTS5 full-text search + BM25 ranking             │
+│                 • Glossary lookup + term injection                 │
 │                                                                   │
-│  ~3s ────────▶ Channel 1: RAG (Vector DB + BM25)                  │
-│                 • Orama full-text search in Web Worker            │
-│                 • BGE-M3 embeddings for semantic ranking           │
+│  ~200ms ─────▶ Channel 2: Ollama LLM (Backend SSE Streaming)     │
+│                 • qwen2.5:7b via FastAPI /translate/stream        │
+│                 • SSE ghost text with token-by-token rendering    │
+│                 • Glossary-aware prompts for domain accuracy      │
 │                                                                   │
-│  ~3s ────────▶ Channel 2: Gemini (Cloud Fallback)                 │
-│                 • gemini-2.0-flash via REST API                   │
-│                 • Activated when WebGPU unavailable               │
-│                                                                   │
-│  ~5s ────────▶ Channel 3: WebLLM (WebGPU)                         │
-│                 • Support for Gemma 2B, 4B, Llama 3, Phi-3        │
+│  ~500ms ─────▶ Channel 3: WebLLM (WebGPU Fallback)               │
+│                 • Gemma 2B/4B, Llama 3, Phi-3 via WebGPU         │
 │                 • CreateWebWorkerMLCEngine (off-thread)           │
 │                 • 3-5 word burst continuation                     │
-│                 • First load requires model download (~1.5-4.5GB) │
+│                                                                   │
+│  ~3s ────────▶ Channel 4: Gemini (Cloud, Opt-In)                 │
+│                 • gemini-2.0-flash via REST API                   │
+│                 • Only activated when user provides API key       │
+│                                                                   │
+│  After LLM ──▶ Validation Pipeline                                │
+│                 • Length ratio check                               │
+│                 • Number preservation verification                 │
+│                 • Arabic character detection                       │
+│                 • Untranslated segment detection                   │
+│                                                                   │
+│  Continuous ──▶ Dual Storage Sync                                 │
+│                 • SQLite (backend, authoritative)                  │
+│                 • IndexedDB (frontend, cached)                     │
+│                 • Incremental pull + pending push                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -63,12 +75,12 @@ RDAT Copilot uses a cascading multi-channel architecture that delivers instant s
 | Channel | Engine | Latency | Quality | Offline? |
 |---------|--------|---------|---------|----------|
 | **0** | LTE (Phrase Table) | <5ms | Good (exact matches) | ✅ Yes |
-| **1** | RAG (Vector DB + BM25) | ~3s | Very Good (contextual) | ✅ Yes* |
-| **2** | Gemini (Cloud) | ~3s | Excellent (neural) | ❌ No |
-| **3** | WebLLM (WebGPU) | ~5s | Excellent (neural) | ✅ Yes* |
-| **4** | Prefetch Cache | <5ms | Good (cached) | ✅ Yes |
+| **1** | RAG (SQLite + FTS5) | ~50ms | Very Good (contextual) | ✅ Yes* |
+| **2** | Ollama LLM (Backend) | ~200ms | Excellent (neural) | ✅ Yes* |
+| **3** | WebLLM (WebGPU) | ~500ms | Excellent (neural) | ✅ Yes* |
+| **4** | Gemini (Cloud) | ~3s | Excellent (neural) | ❌ No |
 
-*\*Requires initial model download during first session.*
+*\*Requires Ollama backend running locally for Channels 1-2, or WebGPU model download for Channel 3.*
 
 ---
 
@@ -82,8 +94,8 @@ RDAT Copilot uses a cascading multi-channel architecture that delivers instant s
 
 ```bash
 # Clone the repository
-git clone https://github.com/waleedmandour/rdat-pwa.git
-cd rdat-pwa
+git clone https://github.com/waleedmandour/rdat-copilot.git
+cd rdat-copilot
 
 # Install dependencies
 npm install
@@ -98,8 +110,31 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```bash
 npm run build
-npm run start
 ```
+
+The static export is generated in `./out` and deployed to GitHub Pages automatically via CI/CD.
+
+### Backend (FastAPI + Ollama)
+
+The local backend provides LLM-powered translation via Ollama and a SQLite Translation Memory:
+
+```bash
+# Option 1: Run directly (recommended)
+./scripts/start-backend.sh
+
+# Option 2: Run with Docker
+./scripts/start-backend.sh --docker
+
+# Option 3: Manual start
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+Prerequisites for the backend:
+- **Ollama** installed and running (`ollama serve`)
+- **qwen2.5:7b** model pulled (`ollama pull qwen2.5:7b`)
+- **Python 3.12+** and pip
 
 ### PWA Installation
 The app registers as a PWA automatically when served over HTTPS (or localhost). Install it via your browser's "Add to Home Screen" or "Install App" option for a native-like experience.
@@ -110,6 +145,30 @@ The app registers as a PWA automatically when served over HTTPS (or localhost). 
 
 ```
 rdat-copilot/
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml               # CI/CD: Frontend → GitHub Pages
+│       └── backend-ci.yml           # CI: Backend lint + test
+├── backend/
+│   ├── app/
+│   │   ├── main.py                  # FastAPI app + CORS + startup
+│   │   ├── db.py                    # SQLite schema + FTS5 + seed data
+│   │   ├── orchestrator.py          # Retrieve → Suggest → Validate pipeline
+│   │   ├── ollama_client.py         # Ollama streaming client
+│   │   └── routes/
+│   │       ├── health.py            # /health endpoint
+│   │       ├── translate.py         # /translate/stream (SSE) + /translate (REST)
+│   │       ├── tm.py                # TM CRUD + search + bulk import
+│   │       ├── glossary.py          # Glossary CRUD + search
+│   │       ├── segments.py          # Segment tracking CRUD
+│   │       └── validate.py          # Translation validation
+│   ├── tests/
+│   │   └── test_health.py           # Backend API tests
+│   ├── requirements.txt             # Python dependencies
+│   └── pyproject.toml               # Ruff + pytest config
+├── scripts/
+│   ├── start-backend.sh             # Backend startup (local / Docker)
+│   └── deploy-pages.sh              # Manual frontend deployment
 ├── public/
 │   ├── data/
 │   │   └── default-corpus-en-ar.json   # 15 bilingual sentence pairs
@@ -137,6 +196,8 @@ rdat-copilot/
 │   ├── context/
 │   │   └── LanguageContext.tsx         # EN/AR i18n context
 │   ├── hooks/
+│   │   ├── useLocalAgent.ts           # SSE streaming hook (Channel 1/2)
+│   │   ├── useDualStorage.ts          # SQLite ↔ IndexedDB sync hook
 │   │   ├── useRAG.ts                   # RAG worker hook
 │   │   ├── useWebLLM.ts                # WebGPU engine hook
 │   │   ├── useGemini.ts                # Gemini cloud hook
@@ -144,6 +205,8 @@ rdat-copilot/
 │   ├── i18n/
 │   │   └── translations.ts             # EN/AR translation dicts
 │   ├── lib/
+│   │   ├── dual-storage.ts             # IndexedDB cache + backend sync
+│   │   ├── local-config.ts             # Backend URL config + health check
 │   │   ├── local-translation-engine.ts # Channel 0: LTE class
 │   │   ├── monaco-suggestion-provider.ts # Monaco async pipelines
 │   │   └── utils.ts                    # cn() utility
@@ -152,8 +215,11 @@ rdat-copilot/
 │   │   └── settings-store.ts           # User preferences (persisted)
 │   └── workers/
 │       └── rag-worker.ts               # Web Worker (Orama + Transformers.js)
-├── next.config.mjs                     # Next.js + PWA + webpack config
-├── tailwind.config.js                  # Tailwind CSS configuration
+├── Dockerfile                          # Backend Docker image
+├── docker-compose.yml                  # Backend + volume orchestration
+├── .env.example                        # Frontend environment template
+├── backend/.env.example                # Backend environment template
+├── next.config.mjs                     # Next.js + PWA + export config
 ├── vitest.config.ts                    # Vitest test orchestrator
 ├── LICENSE                             # MIT License
 ├── CITATION.cff                        # Academic citation metadata
@@ -209,7 +275,7 @@ If you use this software in your research, teaching, or publications, please cit
   author       = {Mandour, Waleed},
   title        = {{RDAT Copilot: AI-Powered Translation Co-Writing IDE}},
   year         = {2026},
-  url          = {https://github.com/waleedmandour/rdat-pwa},
+  url          = {https://github.com/waleedmandour/rdat-copilot},
   doi          = {10.17605/OSF.IO/GAQ4K},
   version      = {1.0.0},
   license      = {MIT},

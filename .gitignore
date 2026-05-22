@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,6 +40,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+dist/
+build/
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# Docker
+docker-compose.override.yml
 
 # dev environment artifacts
 /skills/
@@ -48,4 +69,3 @@ next-env.d.ts
 /CLAUDE.md
 /worklog.md
 bun.lock
-*.db

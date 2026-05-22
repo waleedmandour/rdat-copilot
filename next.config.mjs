@@ -37,15 +37,14 @@ const nextConfig = {
   reactStrictMode: true,
 
   // ── GitHub Pages Static Export ──────────────────────────────────
-  // Phase 3 enables `output: 'export'` for GitHub Pages deployment.
-  // Currently set to undefined for development with Vercel/local dev.
-  // To deploy to GitHub Pages, uncomment the next line:
-  // output: "export",
+  // Phase 3: Enabled static export for GitHub Pages deployment.
+  // The CI/CD pipeline builds this and deploys to GitHub Pages.
+  output: "export",
 
   // Base path for GitHub Pages project site
-  // Uncomment when deploying to https://waleedmandour.github.io/rdat-copilot/
-  // basePath: "/rdat-copilot",
-  // assetPrefix: "/rdat-copilot/",
+  // https://waleedmandour.github.io/rdat-copilot/
+  basePath: "/rdat-copilot",
+  assetPrefix: "/rdat-copilot/",
 
   // Required for static export with next/image
   images: {
