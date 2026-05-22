@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, teaching, or publications, please cite it using the following metadata."
+title: "RDAT Copilot: AI-Powered Translation Co-Writing IDE"
+version: 1.0.0
+date-released: 2026-04-11
+url: "https://github.com/waleedmandour/rdat-pwa"
+doi: "10.17605/OSF.IO/GAQ4K"
+authors:
+  - family-names: "Mandour"
+    given-names: "Waleed"
+    affiliation: "Sultan Qaboos University"
+    email: "w.abumandour@squ.edu.om"
+keywords:
+  - "machine translation"
+  - "computer-assisted translation"
+  - "NLP"
+  - "artificial intelligence"
+  - "Arabic translation"
+license: MIT

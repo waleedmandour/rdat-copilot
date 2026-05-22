@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* RDAT Copilot IDE Dark Theme Palette (default) */
+  --color-background: #0f172a; /* slate-950 - Deep navy background */
+  --color-foreground: #e2e8f0; /* slate-200 - Muted text */
+  --color-sidebar: #0b1120; /* navy-950 - Sidebar background */
+  --color-surface: #1e293b; /* slate-800 - Panel/card surfaces */
+  --color-surface-hover: #273548; /* slate-750 - Hover states */
+  --color-border: #334155; /* slate-700 - Borders/dividers */
+  --color-border-muted: #1e293b; /* slate-800 - Subtle borders */
+  --color-primary: #10b981; /* emerald-500 - Active states, success */
+  --color-primary-hover: #059669; /* emerald-600 */
+  --color-primary-muted: #064e3b; /* emerald-900 - Subtle active bg */
+  --color-accent: #3b82f6; /* blue-500 - Links, highlights */
+  --color-accent-hover: #2563eb; /* blue-600 */
+  --color-warning: #d97706; /* amber-600 - Warnings */
+  --color-warning-bg: #451a03; /* amber-950 - Warning backgrounds */
+  --color-error: #ef4444; /* red-500 - Errors */
+  --color-error-bg: #450a0a; /* red-950 - Error backgrounds */
+  --color-ghost-text: #64748b; /* slate-500 - Ghost text/inline completions */
+  --color-selection: #1e3a5f; /* Custom blue for editor selection */
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Dark mode — same as default */
+.dark {
+  --color-background: #0f172a;
+  --color-foreground: #e2e8f0;
+  --color-sidebar: #0b1120;
+  --color-surface: #1e293b;
+  --color-surface-hover: #273548;
+  --color-border: #334155;
+  --color-border-muted: #1e293b;
+  --color-primary: #10b981;
+  --color-primary-hover: #059669;
+  --color-primary-muted: #064e3b;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-warning: #d97706;
+  --color-warning-bg: #451a03;
+  --color-error: #ef4444;
+  --color-error-bg: #450a0a;
+  --color-ghost-text: #64748b;
+  --color-selection: #1e3a5f;
+}
+
+/* Light mode — complete overrides for all theme tokens */
+.light {
+  --color-background: #f8fafc; /* slate-50 */
+  --color-foreground: #0f172a; /* slate-900 */
+  --color-sidebar: #f1f5f9; /* slate-100 */
+  --color-surface: #ffffff; /* white */
+  --color-surface-hover: #f1f5f9; /* slate-100 */
+  --color-border: #e2e8f0; /* slate-200 */
+  --color-border-muted: #e2e8f0; /* slate-200 */
+  --color-primary: #059669; /* emerald-600 — darker for contrast on white */
+  --color-primary-hover: #047857; /* emerald-700 */
+  --color-primary-muted: #d1fae5; /* emerald-100 */
+  --color-accent: #2563eb; /* blue-600 */
+  --color-accent-hover: #1d4ed8; /* blue-700 */
+  --color-warning: #b45309; /* amber-700 */
+  --color-warning-bg: #fef3c7; /* amber-100 */
+  --color-error: #dc2626; /* red-600 */
+  --color-error-bg: #fee2e2; /* red-100 */
+  --color-ghost-text: #94a3b8; /* slate-400 — darker for visibility on white */
+  --color-selection: #bfdbfe; /* blue-200 */
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), var(--font-noto-arabic), system-ui, sans-serif;
+  overflow: hidden; /* IDE-like fixed viewport */
+  /* Smooth dark/light mode transition */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth theme transitions for all themed elements */
+header,
+footer,
+.sidebar,
+.bg-surface,
+.bg-sidebar,
+.bg-background,
+.border-border,
+.border-muted {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Arabic text rendering */
+[lang="ar"],
+[dir="rtl"] {
+  font-family: var(--font-noto-arabic), var(--font-sans), system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * RTL Ghost Text Fix for Monaco Editor
+ *
+ * Monaco's inline suggestion (ghost text) rendering uses pixel-offset
+ * decorations that assume LTR flow. When the editor contains RTL text
+ * (Arabic), the ghost text either renders at column 0 (off the left
+ * edge) or is hidden entirely because the offset calculations invert.
+ *
+ * The fix is to force the ghost text decoration elements to use
+ * `direction: ltr` while keeping the editor's base direction RTL.
+ * This ensures Monaco's pixel-offset math works correctly, while the
+ * browser's bidirectional algorithm still renders the Arabic characters
+ * in the correct visual order.
+ *
+ * Multiple CSS selectors target different Monaco internals:
+ *  - .inline-suggestion          — high-level ghost text wrapper
+ *  - .ghost-text-decoration      — decoration element
+ *  - .inline-completion-text-insertion — text insertion preview
+ *
+ * See: https://github.com/microsoft/monaco-editor/issues/3752
+ * ═══════════════════════════════════════════════════════════════════ */
+.monaco-editor .inline-suggestion,
+.monaco-editor .ghost-text-decoration,
+.monaco-editor .inline-completion-text-insertion {
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  color: var(--color-ghost-text) !important;
+  opacity: 0.7;
+}
+
+/* Ensure the lines-content container respects RTL for base text,
+   while ghost text decorations are exempted above. */
+.monaco-editor .lines-content {
+  unicode-bidi: plaintext !important;
+}
+
+/* Scrollbar styling for a polished IDE feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-muted);
+}
+
+/* Selection color matching IDE theme */
+::selection {
+  background: var(--color-selection);
+  color: var(--color-foreground);
+}

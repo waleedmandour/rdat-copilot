@@ -1,0 +1,77 @@
+[
+  {
+    "en": "The future of translation technology lies in the seamless integration of artificial intelligence with human expertise.",
+    "ar": "يكمن مستقبل تكنولوجيا الترجمة في التكامل السلس بين الذكاء الاصطناعي والخبرة البشرية.",
+    "type": "tm"
+  },
+  {
+    "en": "Computer-assisted translation tools have evolved significantly, moving from simple terminology management to sophisticated neural machine translation systems.",
+    "ar": "فقد تطورت أدوات الترجمة بمساعدة الحاسوب بشكل ملحوظ، منتقلة من إدارة المصطلحات البسيطة إلى أنظمة الترجمة الآلية العصبية المتطورة.",
+    "type": "tm"
+  },
+  {
+    "en": "Modern translators work in hybrid environments where AI provides initial suggestions and human linguists refine the output.",
+    "ar": "يعمل المترجمون الحديثون في بيئات هجينة حيث يقدم الذكاء الاصطناعي اقتراحات أولية ويقوم اللغويون البشر بتحسين المخرجات.",
+    "type": "tm"
+  },
+  {
+    "en": "This collaborative approach ensures both efficiency and quality, particularly for specialized domains like legal, medical, and technical translation.",
+    "ar": "يضمن هذا النهج التعاوني الكفاءة والجودة معاً، لا سيما في المجالات المتخصصة مثل الترجمة القانونية والطبية والتقنية.",
+    "type": "tm"
+  },
+  {
+    "en": "The key challenge in machine translation remains context preservation.",
+    "ar": "يظل الحفاظ على السياق التحدي الرئيسي في الترجمة الآلية.",
+    "type": "tm"
+  },
+  {
+    "en": "Unlike human translators who understand cultural nuances and idiomatic expressions, AI systems rely on statistical patterns and training data.",
+    "ar": "فعلى عكس المترجمين البشر الذين يفهمون الفروق الثقافية والتعبيرات الاصطلاحية، تعتمد أنظمة الذكاء الاصطناعي على الأنماط الإحصائية وبيانات التدريب.",
+    "type": "tm"
+  },
+  {
+    "en": "The best results come from combining both strengths.",
+    "ar": "وتتأتي أفضل النتائج من الجمع بين نقاط القوة في كلا النهجين.",
+    "type": "tm"
+  },
+  {
+    "en": "Quality assurance in translation involves multiple layers: terminology consistency, grammatical correctness, cultural appropriateness, and domain accuracy.",
+    "ar": "تشمل ضمان الجودة في الترجمة طبقات متعددة: اتساق المصطلحات، والصحة النحوية، والملاءمة الثقافية، والدقة المتخصصة.",
+    "type": "tm"
+  },
+  {
+    "en": "Professional translators use glossaries, translation memories, and style guides to maintain standards across large projects.",
+    "ar": "ويستخدم المترجمون المحترفون المسارد وقواعد الترجمة وأدلة الأسلوب للحفاظ على المعايير عبر المشاريع الكبيرة.",
+    "type": "tm"
+  },
+  {
+    "en": "The emergence of real-time collaboration features has transformed how translation teams work together.",
+    "ar": "غيّر ظهور ميزات التعاون في الوقت الفعلي طريقة عمل فرق الترجمة معاً.",
+    "type": "tm"
+  },
+  {
+    "en": "Cloud-based platforms allow multiple linguists to work on the same project simultaneously, with version control and automated quality checks ensuring consistency throughout the process.",
+    "ar": "تتيح المنصات السحابية لعدة لغويين العمل على نفس المشروع في وقت واحد، مع التحكم في الإصدار وفحوصات الجودة الآلية التي تضمن الاتساق طوال العملية.",
+    "type": "tm"
+  },
+  {
+    "en": "Neural machine translation has revolutionized the way we approach cross-lingual communication.",
+    "ar": "أحدثت الترجمة الآلية العصبية ثورة في طريقة تعاملنا مع التواصل عبر اللغات.",
+    "type": "tm"
+  },
+  {
+    "en": "Translation memories store previously translated segments to improve consistency and reduce redundant work.",
+    "ar": "تخزن ذكريات الترجمة المقاطع المترجمة سابقاً لتحسين الاتساق وتقليل العمل المكرر.",
+    "type": "tm"
+  },
+  {
+    "en": "Terminology management is essential for maintaining brand voice and technical accuracy across all translated content.",
+    "ar": "تُعد إدارة المصطلحات أمراً أساسياً للحفاظ على صوت العلامة التجارية والدقة التقنية عبر جميع المحتويات المترجمة.",
+    "type": "tm"
+  },
+  {
+    "en": "Post-editing machine translation output requires a different skill set than traditional translation, focusing on correction rather than creation.",
+    "ar": "يتطلب تحرير مخرجات الترجمة الآلية مجموعة مهارات مختلفة عن الترجمة التقليدية، مع التركيز على التصحيح بدلاً من الإنشاء.",
+    "type": "tm"
+  }
+]
