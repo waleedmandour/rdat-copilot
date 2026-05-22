@@ -2,7 +2,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Wifi, WifiOff, Cpu, Cloud, Zap, Database, Search, Server } from "lucide-react";
+import { Wifi, WifiOff, Cpu, Cloud, Zap, Database, Search, Server, HardDrive, RefreshCw } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import type { RAGState } from "@/hooks/useRAG";
 import type { LocalAgentState } from "@/hooks/useLocalAgent";
@@ -26,6 +26,15 @@ interface StatusBarProps {
   localAgentState?: LocalAgentState;
   segmentCount?: number;
   wordCount?: number;
+  /** Dual storage sync info */
+  storageInfo?: {
+    tmCount: number;
+    glossaryCount: number;
+    segmentCount: number;
+    isSyncing: boolean;
+    isBackendReachable: boolean;
+    lastSyncAt: string | null;
+  };
 }
 
 const EngineModeBadge: React.FC<{ mode: EngineMode }> = ({ mode }) => {
@@ -82,9 +91,6 @@ const WebGPUBadge: React.FC<{ info: WebGPUInfo }> = ({ info }) => {
   const { t, locale } = useLanguage();
   const isRTL = locale === "ar";
 
-  // Map WebLLM states to displayable states
-  // WebLLM has "recovering" which isn't in WebGPUState — treat as "initializing"
-  // WebLLM has "idle" (WebGPU available, model not loaded) — display as-is
   const safeState: WebGPUState = 
     ["ready", "unavailable", "idle", "loading", "downloading", "generating", "error", "initializing"]
       .includes(info.state as string) 
@@ -136,7 +142,6 @@ const WebGPUBadge: React.FC<{ info: WebGPUInfo }> = ({ info }) => {
 
   const { icon, bg } = config[safeState] ?? config.loading;
 
-  // For downloading state, show progress
   let label: React.ReactNode;
   if (safeState === "downloading" && info.progress) {
     label = (
@@ -175,7 +180,6 @@ const RAGBadge: React.FC<{ ragState?: RAGState }> = ({ ragState }) => {
 
   if (!ragState) return null;
 
-  // RAG is working if corpus is indexed in the worker
   if (ragState.isCorpusLoaded) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-primary-muted text-primary">
@@ -185,7 +189,6 @@ const RAGBadge: React.FC<{ ragState?: RAGState }> = ({ ragState }) => {
     );
   }
 
-  // RAG is still loading
   if (ragState.isLoading) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-surface-hover text-muted-foreground">
@@ -195,7 +198,6 @@ const RAGBadge: React.FC<{ ragState?: RAGState }> = ({ ragState }) => {
     );
   }
 
-  // RAG has error — show LTE fallback indicator
   if (ragState.error) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-warning-bg text-warning" title={ragState.error}>
@@ -205,7 +207,6 @@ const RAGBadge: React.FC<{ ragState?: RAGState }> = ({ ragState }) => {
     );
   }
 
-  // RAG worker not ready but LTE loaded
   if (ragState.corpusSize > 0) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-surface-hover text-muted-foreground">
@@ -270,6 +271,39 @@ const LocalAgentBadge: React.FC<{ state: LocalAgentState }> = ({ state: agentSta
   );
 };
 
+const StorageBadge: React.FC<{ info: NonNullable<StatusBarProps["storageInfo"]> }> = ({ info }) => {
+  const { locale } = useLanguage();
+  const isRTL = locale === "ar";
+
+  const totalEntries = info.tmCount + info.glossaryCount + info.segmentCount;
+  const isSyncing = info.isSyncing;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold",
+        info.isBackendReachable
+          ? "bg-emerald-900/30 text-emerald-400"
+          : "bg-surface-hover text-muted-foreground"
+      )}
+      title={
+        isRTL
+          ? `ذاكرة الترجمة: ${info.tmCount} | المسرد: ${info.glossaryCount} | الشرائح: ${info.segmentCount}${info.lastSyncAt ? ` | آخر مزامنة: ${new Date(info.lastSyncAt).toLocaleTimeString("ar")}` : ""}`
+          : `TM: ${info.tmCount} | Glossary: ${info.glossaryCount} | Segments: ${info.segmentCount}${info.lastSyncAt ? ` | Last sync: ${new Date(info.lastSyncAt).toLocaleTimeString()}` : ""}`
+      }
+    >
+      {isSyncing ? (
+        <RefreshCw className="w-3 h-3 animate-spin" />
+      ) : (
+        <HardDrive className="w-3 h-3" />
+      )}
+      <span>
+        {isRTL ? "ذاكرة" : "DB"} {totalEntries > 0 ? totalEntries : "—"}
+      </span>
+    </div>
+  );
+};
+
 export function StatusBar({
   engineMode = "hybrid",
   gtrStatus = "zero-shot",
@@ -279,6 +313,7 @@ export function StatusBar({
   localAgentState = "disconnected",
   segmentCount = 0,
   wordCount = 0,
+  storageInfo,
 }: StatusBarProps) {
   const { t, locale } = useLanguage();
   const isRTL = locale === "ar";
@@ -301,6 +336,7 @@ export function StatusBar({
         )}
         <RAGBadge ragState={ragState} />
         <LocalAgentBadge state={localAgentState} />
+        {storageInfo && <StorageBadge info={storageInfo} />}
       </div>
 
       {/* Right Section: Document Stats */}

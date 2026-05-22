@@ -6,6 +6,7 @@ import { StatusBar, EngineMode, GTRStatus } from "./StatusBar";
 import type { WebGPUInfo } from "./StatusBar";
 import type { RAGState } from "@/hooks/useRAG";
 import type { LocalAgentState } from "@/hooks/useLocalAgent";
+import { useDualStorage } from "@/hooks/useDualStorage";
 import { WelcomeTab } from "./WelcomeTab";
 import { TranslationWorkspace } from "./editors/TranslationWorkspace";
 import { SettingsPanel } from "./Settings";
@@ -46,9 +47,10 @@ export function WorkspaceShell({ className }: WorkspaceShellProps) {
   });
   const [localAgentState, setLocalAgentState] = useState<LocalAgentState>("disconnected");
 
+  // ── Dual storage hook ──────────────────────────────────────────
+  const storage = useDualStorage();
+
   // Hydration: track client-side mount for theme toggle.
-  // Standard React pattern — setState in effect is necessary here to
-  // defer the mounted check until after hydration.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration detection
@@ -190,6 +192,14 @@ export function WorkspaceShell({ className }: WorkspaceShellProps) {
         localAgentState={localAgentState}
         segmentCount={0}
         wordCount={0}
+        storageInfo={{
+          tmCount: storage.tmCount,
+          glossaryCount: storage.glossaryCount,
+          segmentCount: storage.segmentCount,
+          isSyncing: storage.isSyncing,
+          isBackendReachable: storage.isBackendReachable,
+          lastSyncAt: storage.lastSyncAt,
+        }}
       />
 
       {/* Quick Guide Modal */}

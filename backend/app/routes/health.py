@@ -10,20 +10,34 @@ router = APIRouter()
 @router.get("/health")
 async def health_check():
     """
-    Return backend health status including Ollama and SQLite state.
+    Return backend health status including Ollama, SQLite, and data counts.
     The frontend polls this endpoint every 15 seconds.
     """
     # Check Ollama
     ollama_ok = await check_ollama_available()
     model_name = await get_loaded_model() if ollama_ok else None
 
-    # Check SQLite
+    # Check SQLite and get counts
     sqlite_ok = False
+    tm_count = 0
+    glossary_count = 0
+    segment_count = 0
+
     try:
         db = await get_db()
         cursor = await db.execute("SELECT COUNT(*) as cnt FROM tm_entries")
         row = await cursor.fetchone()
         sqlite_ok = row is not None
+        tm_count = row["cnt"] if row else 0
+
+        cursor = await db.execute("SELECT COUNT(*) as cnt FROM glossary")
+        row = await cursor.fetchone()
+        glossary_count = row["cnt"] if row else 0
+
+        cursor = await db.execute("SELECT COUNT(*) as cnt FROM segments")
+        row = await cursor.fetchone()
+        segment_count = row["cnt"] if row else 0
+
         await db.close()
     except Exception:
         pass
@@ -42,5 +56,10 @@ async def health_check():
         "sqlite": sqlite_ok,
         "model": model_name,
         "modelLoaded": ollama_ok and model_name is not None,
-        "version": "0.1.0",
+        "version": "0.2.0",
+        "counts": {
+            "tm": tm_count,
+            "glossary": glossary_count,
+            "segments": segment_count,
+        },
     }

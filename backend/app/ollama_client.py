@@ -3,6 +3,7 @@ Ollama LLM Client — Streaming Inference
 
 Connects to a local Ollama instance (default: localhost:11434).
 Supports SSE-style token streaming for low-latency ghost text.
+Supports glossary-aware prompts for domain-specific translation.
 """
 
 import httpx
@@ -46,17 +47,36 @@ async def get_loaded_model() -> str | None:
         return None
 
 
+def _build_glossary_section(glossary_terms: list[dict]) -> str:
+    """
+    Build a glossary section for the prompt.
+    Formats glossary terms as a reference table for the LLM.
+    """
+    if not glossary_terms:
+        return ""
+
+    lines = ["\n\nIMPORTANT — Use these glossary terms in your translation:"]
+    for term in glossary_terms:
+        pos_info = f" ({term['pos']})" if term.get("pos") else ""
+        domain_info = f" [{term['domain']}]" if term.get("domain") else ""
+        lines.append(f"  - {term['source_term']}{pos_info}{domain_info} → {term['target_term']}")
+    lines.append("\nEnsure these terms are translated consistently with the glossary above.")
+    return "\n".join(lines)
+
+
 async def ollama_stream(
     source: str,
     prefix: str = "",
     max_tokens: int = 30,
     model: str | None = None,
+    glossary_terms: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     Stream tokens from Ollama for a translation request.
 
     The prompt instructs the model to continue from where the user
     left off (prefix), outputting only the remaining Arabic text.
+    Glossary terms are injected into the prompt for consistency.
     """
     model = model or DEFAULT_MODEL
 
@@ -64,7 +84,12 @@ async def ollama_stream(
     if prefix:
         user_prompt += f'\nThe translator has already started typing: "{prefix}"\n'
         user_prompt += "Continue from where they left off. Output only the remaining Arabic text. "
-    user_prompt += f"Output no more than {max_tokens} words."
+
+    # Inject glossary terms if available
+    if glossary_terms:
+        user_prompt += _build_glossary_section(glossary_terms)
+
+    user_prompt += f"\nOutput no more than {max_tokens} words."
 
     payload = {
         "model": model,
@@ -106,6 +131,7 @@ async def ollama_translate(
     source: str,
     max_tokens: int = 256,
     model: str | None = None,
+    glossary_terms: list[dict] | None = None,
 ) -> str:
     """
     Non-streaming full translation via Ollama.
@@ -114,6 +140,8 @@ async def ollama_translate(
     model = model or DEFAULT_MODEL
 
     user_prompt = f"Translate this text to Arabic:\n\n{source}"
+    if glossary_terms:
+        user_prompt += _build_glossary_section(glossary_terms)
 
     payload = {
         "model": model,

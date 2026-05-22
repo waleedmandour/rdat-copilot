@@ -17,9 +17,27 @@ export type LocalAgentState =
   | "generating"     // Actively streaming from SSE
   | "error";
 
+interface GlossaryTerm {
+  source_term: string;
+  target_term: string;
+  pos?: string;
+  domain?: string;
+}
+
+interface ValidationResult {
+  is_valid: boolean;
+  warnings: string[];
+  errors: string[];
+  score: number;
+}
+
 interface LocalAgentResult {
   text: string;
   channel: "tm" | "llm" | "error";
+  score?: number;
+  matchType?: string;
+  glossaryTerms?: GlossaryTerm[];
+  validation?: ValidationResult;
   error?: string;
 }
 
@@ -40,20 +58,21 @@ interface LocalAgentResult {
  *  POST /translate/stream
  *  Body: { source: string, prefix: string, max_tokens?: number }
  *  Response: text/event-stream
- *    data: {"channel": "tm", "text": "..."}
- *    data: {"channel": "llm", "text": "..."}
+ *    data: {"channel": "tm", "text": "...", "score": 0.9, "match_type": "fts5"}
+ *    data: {"channel": "glossary", "terms": [...]}
+ *    data: {"channel": "llm", "text": "token"}
+ *    data: {"channel": "validate", "is_valid": true, "score": 0.95, ...}
  *    data: [DONE]
  */
 export function useLocalAgent() {
   const [state, setState] = useState<LocalAgentState>("disconnected");
   const [health, setHealth] = useState<BackendHealth | null>(null);
+  const [lastValidation, setLastValidation] = useState<ValidationResult | null>(null);
+  const [lastGlossaryTerms, setLastGlossaryTerms] = useState<GlossaryTerm[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const healthCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Periodic health check ──────────────────────────────────────────
-  // Check backend health every 15 seconds so the UI can show
-  // connection status and the ghost text provider can decide
-  // whether to include this channel.
   useEffect(() => {
     let cancelled = false;
 
@@ -102,7 +121,7 @@ export function useLocalAgent() {
   /**
    * Generate a burst suggestion via SSE streaming.
    *
-   * The backend pipeline: Retrieve (TM) → Suggest (Ollama) → stream back.
+   * The backend pipeline: Retrieve (TM + Glossary) → Suggest (Ollama) → Validate → stream back.
    * We collect all SSE events and return the best result.
    * TM results arrive first (fast, ~50ms), then LLM tokens stream in.
    *
@@ -153,7 +172,11 @@ export function useLocalAgent() {
         const decoder = new TextDecoder();
         let buffer = "";
         let tmResult = "";
+        let tmScore = 0;
+        let tmMatchType = "";
         let llmResult = "";
+        let glossaryTerms: GlossaryTerm[] = [];
+        let validation: ValidationResult | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -175,8 +198,19 @@ export function useLocalAgent() {
               const parsed = JSON.parse(data);
               if (parsed.channel === "tm" && parsed.text) {
                 tmResult = parsed.text;
+                tmScore = parsed.score ?? 0;
+                tmMatchType = parsed.match_type ?? "";
+              } else if (parsed.channel === "glossary" && parsed.terms) {
+                glossaryTerms = parsed.terms;
               } else if (parsed.channel === "llm" && parsed.text) {
                 llmResult += parsed.text;
+              } else if (parsed.channel === "validate") {
+                validation = {
+                  is_valid: parsed.is_valid ?? true,
+                  warnings: parsed.warnings ?? [],
+                  errors: parsed.errors ?? [],
+                  score: parsed.score ?? 0,
+                };
               }
             } catch {
               // Malformed SSE data — skip
@@ -188,9 +222,26 @@ export function useLocalAgent() {
         const result = tmResult || llmResult;
         setState("ready");
 
+        // Store glossary and validation in state for UI access
+        if (glossaryTerms.length > 0) {
+          setLastGlossaryTerms(glossaryTerms);
+        }
+        if (validation) {
+          setLastValidation(validation);
+        }
+
         if (result) {
-          console.log(`[LocalAgent] Burst (${tmResult ? "tm" : "llm"}): "${result.substring(0, 60)}..."`);
-          return { text: result, channel: tmResult ? "tm" : "llm" };
+          console.log(
+            `[LocalAgent] Burst (${tmResult ? "tm" : "llm"}, score: ${tmScore || "n/a"}): "${result.substring(0, 60)}..."`
+          );
+          return {
+            text: result,
+            channel: tmResult ? "tm" : "llm",
+            score: tmScore || undefined,
+            matchType: tmMatchType || undefined,
+            glossaryTerms: glossaryTerms.length > 0 ? glossaryTerms : undefined,
+            validation: validation || undefined,
+          };
         }
 
         return { text: "", channel: "error", error: "No suggestion from backend" };
@@ -226,7 +277,7 @@ export function useLocalAgent() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: abortControllerRef.current.signal,
-          body: JSON.stringify({ source, max_tokens: 256 }),
+          body: JSON.stringify({ source, max_tokens: 256, validate: true }),
         });
 
         if (!response.ok) {
@@ -237,8 +288,21 @@ export function useLocalAgent() {
         const text = data?.translation?.trim() || "";
         const channel = data?.channel || "llm";
 
+        // Store validation results
+        if (data?.validation) {
+          setLastValidation(data.validation);
+        }
+        if (data?.glossary) {
+          setLastGlossaryTerms(data.glossary);
+        }
+
         console.log(`[LocalAgent] Full: "${text.substring(0, 80)}..."`);
-        return { text, channel };
+        return {
+          text,
+          channel,
+          glossaryTerms: data?.glossary,
+          validation: data?.validation,
+        };
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") {
           return { text: "", channel: "error" };
@@ -291,6 +355,8 @@ export function useLocalAgent() {
   return {
     state,
     health,
+    lastValidation,
+    lastGlossaryTerms,
     isReachable: state !== "disconnected" && state !== "connecting",
     isReady: state === "ready",
     isGenerating: state === "generating",
