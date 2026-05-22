@@ -40,14 +40,22 @@ class TMSearchRequest(BaseModel):
 
 @router.get("/tm/search")
 async def search_tm(q: str, limit: int = 5):
-    """Search Translation Memory by source text using FTS5."""
+    """Search Translation Memory by source text using FTS5 full-text search.
+
+    Returns matching TM entries ranked by BM25 score. Results include
+    source text, target text, and a normalized similarity score.
+    """
     results = await tm_search(q, limit=limit)
     return {"results": results, "count": len(results)}
 
 
 @router.post("/tm/search")
 async def search_tm_post(req: TMSearchRequest):
-    """Search TM by source text (POST variant for complex queries)."""
+    """Search TM by source text (POST variant for complex queries).
+
+    Returns detailed match information including match type (exact, fts5, like)
+    and the internal entry ID, which the GET variant does not include.
+    """
     results = await tm_search_fts5(req.query, limit=req.limit)
     return {"results": results, "count": len(results)}
 
@@ -182,8 +190,14 @@ async def tm_count():
 @router.get("/sync/tm")
 async def sync_tm(since: str | None = None):
     """
-    Sync endpoint: return TM entries created/updated after timestamp.
-    Frontend uses this to populate its local IndexedDB cache.
+    Sync endpoint for the dual storage layer.
+
+    Returns TM entries created or updated after the given timestamp.
+    The frontend uses this to populate its local IndexedDB cache with
+    incremental updates since the last sync.
+
+    **Parameters:**
+    - `since` (optional): ISO 8601 timestamp. If omitted, returns all entries.
     """
     db = await get_db()
     try:

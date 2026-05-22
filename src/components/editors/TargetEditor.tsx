@@ -111,7 +111,10 @@ function registerGhostTextProvider(
   getPrefetch: (line: number) => PrefetchEntry | null
 ): IDisposable {
   const provider = monaco.languages.registerInlineCompletionsProvider("plaintext", {
-    provideInlineCompletions: async (model, position) => {
+    provideInlineCompletions: async (
+      model: import("monaco-editor").editor.ITextModel,
+      position: import("monaco-editor").Position
+    ) => {
       const lineNumber = position.lineNumber;
       const sourceLine = sourceLinesRef.current[lineNumber - 1]?.trim();
       if (!sourceLine) {
@@ -177,7 +180,7 @@ function registerGhostTextProvider(
       // No-op — provider has no external resources to clean up.
       // Monaco 0.52.2 InlineCompletionsProvider.freeInlineCompletions
     },
-  });
+  } as unknown as import("monaco-editor").languages.InlineCompletionsProvider);
 
   const editor = editorRef.current;
   const contentListener = editor?.onDidChangeModelContent(() => {

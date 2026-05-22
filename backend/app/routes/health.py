@@ -11,7 +11,15 @@ router = APIRouter()
 async def health_check():
     """
     Return backend health status including Ollama, SQLite, and data counts.
-    The frontend polls this endpoint every 15 seconds.
+
+    The frontend polls this endpoint every 15 seconds to update the status bar.
+    The response includes all information needed to display channel availability
+    and data statistics.
+
+    **Status values:**
+    - `ok` — Both Ollama and SQLite are working. Full functionality available.
+    - `degraded` — SQLite works but Ollama is unreachable. TM search works, but LLM translation is unavailable.
+    - `down` — SQLite is not working. Critical error.
     """
     # Check Ollama
     ollama_ok = await check_ollama_available()

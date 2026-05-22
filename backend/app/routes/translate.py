@@ -29,15 +29,25 @@ async def translate_stream_endpoint(req: TranslateRequest):
     """
     SSE streaming translation endpoint.
 
-    Pipeline: Retrieve (TM + Glossary) → Suggest (Ollama) → Validate → stream back.
-    Returns text/event-stream with JSON data events.
+    Implements the full Retrieve → Suggest → Validate pipeline and streams
+    results back as Server-Sent Events (text/event-stream).
 
-    Event format:
-        data: {"channel": "tm", "text": "...", "score": 0.9}
-        data: {"channel": "glossary", "terms": [...]}
-        data: {"channel": "llm", "text": "token"}
-        data: {"channel": "validate", "is_valid": true, "score": 0.95, ...}
-        data: [DONE]
+    **Pipeline stages:**
+    1. **Retrieve**: Search Translation Memory (FTS5) + Glossary lookup
+    2. **Suggest**: If TM score < 0.85, call Ollama LLM with glossary-aware prompt
+    3. **Validate**: Quality checks on the final translation
+
+    **SSE Event Format:**
+    - `data: {"channel": "glossary", "terms": [...]}` — Glossary terms found in source
+    - `data: {"channel": "tm", "text": "...", "score": 0.9}` — TM match result
+    - `data: {"channel": "llm", "text": "token"}` — LLM token (one per event)
+    - `data: {"channel": "validate", "is_valid": true, ...}` — Validation result
+    - `data: [DONE]` — Stream complete
+
+    **Behavior:**
+    - If TM score >= 0.85, LLM is skipped and the TM result is returned immediately
+    - If TM score < 0.85, both TM and LLM results are sent
+    - Glossary terms are always sent first if found in the source text
     """
     async def event_generator():
         async for data in translate_stream(
@@ -62,8 +72,21 @@ async def translate_stream_endpoint(req: TranslateRequest):
 async def translate_full_endpoint(req: FullTranslateRequest):
     """
     Non-streaming full paragraph translation.
-    Returns the complete translation as JSON.
-    Optionally runs validation if validate=True.
+
+    Returns the complete translation as a JSON response. Optionally runs
+    validation checks if `validate=true`.
+
+    **When to use:**
+    - Translating full paragraphs or documents (not per-keystroke)
+    - When SSE streaming is not needed
+    - For batch processing or API integrations
+
+    **Response includes:**
+    - `translation`: The Arabic translation text
+    - `channel`: The source channel ("llm" for Ollama)
+    - `model`: The model used ("ollama")
+    - `glossary`: Matched glossary terms (if any)
+    - `validation`: Quality check results (if validate=true)
     """
     # Look up glossary terms for context-aware translation
     glossary_terms = []

@@ -74,7 +74,11 @@ async def search_glossary(q: str, limit: int = 20):
 async def glossary_lookup_for_source(q: str):
     """
     Look up glossary terms that appear in the given source text.
-    Used by the orchestrator for glossary-aware prompts.
+
+    Unlike `/glossary/search` which finds entries matching a query,
+    this endpoint finds glossary terms that are **contained within**
+    the source text. Used by the orchestrator for glossary-aware prompts
+    to ensure consistent terminology in LLM translations.
     """
     db = await get_db()
     try:
@@ -223,8 +227,14 @@ async def glossary_count():
 @router.get("/sync/glossary")
 async def sync_glossary(since: str | None = None):
     """
-    Sync endpoint: return glossary entries created after timestamp.
-    Frontend uses this to populate its local IndexedDB cache.
+    Sync endpoint for the dual storage layer.
+
+    Returns glossary entries created after the given timestamp.
+    The frontend uses this to populate its local IndexedDB cache with
+    incremental updates since the last sync.
+
+    **Parameters:**
+    - `since` (optional): ISO 8601 timestamp. If omitted, returns all entries.
     """
     db = await get_db()
     try:

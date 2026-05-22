@@ -18,17 +18,19 @@ async def validate_endpoint(req: ValidateRequest):
     """
     Run quality validation checks on a translation pair.
 
-    Checks:
-      1. Length ratio (target shouldn't be way shorter or longer)
-      2. Number preservation (numbers in source must appear in target)
-      3. Arabic character detection (target must contain Arabic)
-      4. Untranslated segments (English words that shouldn't be there)
+    Returns a structured validation result with an overall pass/fail,
+    a quality score, and lists of warnings and errors.
 
-    Returns:
-      - is_valid: bool — overall pass/fail
-      - warnings: list[str] — non-blocking issues
-      - errors: list[str] — blocking issues
-      - score: float — 0-1 quality score
+    **Checks performed:**
+    1. **Length ratio** — Target shouldn't be much shorter (<30%) or longer (>300%) than source
+    2. **Number preservation** — All numbers in source must appear in target
+    3. **Arabic character detection** — Target must contain Arabic characters
+    4. **Untranslated segments** — Detects suspicious English words in Arabic text
+    5. **Empty target** — Target text must not be empty
+
+    **Score calculation:**
+    Each check contributes 0.0 (fail), 0.5 (warning), or 1.0 (pass).
+    The overall score is the average of all check scores.
     """
     result = validate_translation(req.source, req.target)
     return result
