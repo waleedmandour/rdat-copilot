@@ -3,7 +3,7 @@ message: "If you use this software in your research, teaching, or publications, 
 title: "RDAT Copilot: AI-Powered Translation Co-Writing IDE"
 version: 1.0.0
 date-released: 2026-04-11
-url: "https://github.com/waleedmandour/rdat-pwa"
+url: "https://github.com/waleedmandour/rdat-copilot"
 doi: "10.17605/OSF.IO/GAQ4K"
 authors:
   - family-names: "Mandour"
