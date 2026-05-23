@@ -32,8 +32,14 @@ const state: WorkerState = {
 
 let db: AnyOrama | null = null;
 
+interface WorkerRequestPayload {
+  query?: string;
+  limit?: number;
+  entries?: Array<{ en: string; ar: string; type: string }>;
+}
+
 // Queue for requests during initialization
-const requestQueue: Array<{ type: string; payload: any; id: string }> = [];
+const requestQueue: Array<{ type: string; payload: WorkerRequestPayload; id: string }> = [];
 
 interface CorpusEntry {
   en: string;
@@ -68,13 +74,14 @@ async function initializeModels(): Promise<void> {
     state.modelsLoaded = true;
     console.log("[RAG Worker] Search system initialized (BM25 full-text)");
     self.postMessage({ type: "MODELS_READY", payload: { model: "bm25-fulltext" } });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     state.status = "error";
-    state.error = err?.message || String(err);
+    state.error = errMsg || "Unknown error";
     console.error("[RAG Worker] Initialization failed:", err);
     self.postMessage({
       type: "INIT_ERROR",
-      payload: { error: `Failed to initialize: ${err?.message || "Unknown error"}` },
+      payload: { error: `Failed to initialize: ${errMsg || "Unknown error"}` },
     });
   }
 }
@@ -97,9 +104,10 @@ async function initDB(): Promise<void> {
       },
     });
     console.log("[RAG Worker] Database initialized");
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     console.error("[RAG Worker] Failed to initialize database:", err);
-    throw new Error(`Database initialization failed: ${err.message}`);
+    throw new Error(`Database initialization failed: ${errMsg}`);
   }
 }
 
@@ -141,7 +149,7 @@ async function indexCorpus(entries: Array<{ en: string; ar: string; type: string
       try {
         await insertMultiple(db!, batch);
         processed += batch.length;
-      } catch (batchErr: any) {
+      } catch (batchErr: unknown) {
         console.error(`[RAG Worker] Batch ${i / batchSize} failed:`, batchErr);
         // Continue with next batch
       }
@@ -164,13 +172,14 @@ async function indexCorpus(entries: Array<{ en: string; ar: string; type: string
       payload: { count: processed },
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     state.status = "error";
-    state.error = err.message;
+    state.error = errMsg;
     console.error("[RAG Worker] Corpus indexing failed:", err);
     self.postMessage({
       type: "INDEXING_ERROR",
-      payload: { error: `Indexing failed: ${err.message}` },
+      payload: { error: `Indexing failed: ${errMsg}` },
     });
   }
 }
@@ -192,15 +201,18 @@ async function handleSearchRequest(query: string, limit: number = 3): Promise<Se
       tolerance: 2,         // Allow some fuzziness in matching
     });
 
-    return results.hits.map((hit: any) => ({
-      score: hit.score,
-      en: hit.document.en,
-      ar: hit.document.ar,
-      type: hit.document.type,
-      index: hit.document.index,
-    }));
-  } catch (err: any) {
-    throw new Error(`Search failed: ${err.message}`);
+    return results.hits.map((hit) => {
+      const doc = hit.document as unknown as { en: string; ar: string; type: string; index: number };
+      return {
+        score: hit.score,
+        en: doc.en,
+        ar: doc.ar,
+        type: doc.type,
+        index: doc.index,
+      };
+    });
+  } catch (err: unknown) {
+    throw new Error(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -214,15 +226,15 @@ async function processQueue(): Promise<void> {
   for (const { type, payload, id } of queue) {
     if (type === "SEARCH") {
       try {
-        const hits = await handleSearchRequest(payload.query, payload.limit);
+        const hits = await handleSearchRequest(payload.query ?? "", payload.limit ?? 3);
         self.postMessage({
           type: "SEARCH_RESULTS",
-          payload: { id, hits, query: payload.query },
+          payload: { id, hits, query: payload.query ?? "" },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         self.postMessage({
           type: "SEARCH_ERROR",
-          payload: { id, error: err.message, query: payload.query },
+          payload: { id, error: err instanceof Error ? err.message : String(err), query: payload.query ?? "" },
         });
       }
     } else if (type === "INGEST_CORPUS") {
@@ -230,10 +242,10 @@ async function processQueue(): Promise<void> {
         if (payload?.entries && state.modelsLoaded) {
           await indexCorpus(payload.entries);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         self.postMessage({
           type: "INDEXING_ERROR",
-          payload: { error: err.message },
+          payload: { error: err instanceof Error ? err.message : String(err) },
         });
       }
     }
@@ -281,10 +293,10 @@ self.onmessage = async (event: MessageEvent) => {
               type: "SEARCH_RESULTS",
               payload: { id: payload.id, hits, query: payload.query },
             });
-          } catch (err: any) {
+          } catch (err: unknown) {
             self.postMessage({
               type: "SEARCH_ERROR",
-              payload: { id: payload.id, error: err.message, query: payload.query },
+              payload: { id: payload.id, error: err instanceof Error ? err.message : String(err), query: payload.query },
             });
           }
         }
@@ -300,11 +312,11 @@ self.onmessage = async (event: MessageEvent) => {
       default:
         console.warn(`[RAG Worker] Unknown message type: ${type}`);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[RAG Worker] Handler error:", err);
     self.postMessage({
       type: "ERROR",
-      payload: { error: err.message },
+      payload: { error: err instanceof Error ? err.message : String(err) },
     });
   }
 };

@@ -24,7 +24,7 @@ interface GlossaryEntry {
 export function GlossaryView() {
   const { locale } = useLanguage();
   const isRTL = locale === "ar";
-  const { state: ragState, lteSearch } = useRAG();
+  const { lteSearch } = useRAG();
   const [searchTerm, setSearchTerm] = useState("");
   const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle");
   const [downloadedDBs, setDownloadedDBs] = useState<string[]>([]);

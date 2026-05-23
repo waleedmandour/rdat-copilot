@@ -84,7 +84,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const contextValue = useMemo(
     () => ({ locale, setLocale, toggleLocale, isRTL, t }),
-    [locale, toggleLocale, isRTL, t]
+    [locale, setLocale, toggleLocale, isRTL, t]
   );
 
   return (

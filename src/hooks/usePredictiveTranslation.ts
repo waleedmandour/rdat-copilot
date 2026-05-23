@@ -10,12 +10,12 @@ import { getLTE } from "@/lib/local-translation-engine";
 const idleCallback =
   typeof window !== "undefined" && "requestIdleCallback" in window
     ? (cb: (deadline: { timeRemaining: () => number }) => void) =>
-        (window as any).requestIdleCallback(cb)
-    : (cb: () => void) => setTimeout(cb, 100);
+        (window as unknown as { requestIdleCallback: (cb: (deadline: { timeRemaining: () => number }) => void) => number }).requestIdleCallback(cb) as unknown as number
+    : (cb: () => void) => setTimeout(cb, 100) as unknown as number;
 
 const cancelIdle =
   typeof window !== "undefined" && "cancelIdleCallback" in window
-    ? (handle: number) => (window as any).cancelIdleCallback(handle)
+    ? (handle: number) => (window as unknown as { cancelIdleCallback: (handle: number) => void }).cancelIdleCallback(handle)
     : (handle: number) => clearTimeout(handle);
 
 /**

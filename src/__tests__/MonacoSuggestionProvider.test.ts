@@ -9,7 +9,7 @@
  *  - Timeout enforcement
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { MonacoSuggestionProvider } from "@/lib/monaco-suggestion-provider";
 
 describe("MonacoSuggestionProvider", () => {

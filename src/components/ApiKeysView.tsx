@@ -15,7 +15,6 @@ import {
   Cpu,
   Shield,
   Zap,
-  AlertTriangle,
 } from "lucide-react";
 
 /**

@@ -225,28 +225,29 @@ export function useRAG() {
               }));
             }
           };
-        } catch (workerErr: any) {
+        } catch (workerErr: unknown) {
           if (initTimeoutRef.current) {
             clearTimeout(initTimeoutRef.current);
           }
-          console.warn("[RAG] Worker initialization failed:", workerErr.message);
+          const workerErrMsg = workerErr instanceof Error ? workerErr.message : String(workerErr);
+          console.warn("[RAG] Worker initialization failed:", workerErrMsg);
           if (!cancelled) {
             setState((prev) => ({
               ...prev,
-              error: `Worker unavailable: ${workerErr.message}`,
+              error: `Worker unavailable: ${workerErrMsg}`,
               isWorkerReady: false,
               isLoading: false,
             }));
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (initTimeoutRef.current) {
           clearTimeout(initTimeoutRef.current);
         }
         if (!cancelled) {
           setState((prev) => ({
             ...prev,
-            error: err.message,
+            error: err instanceof Error ? err.message : String(err),
             isLoading: false,
           }));
         }

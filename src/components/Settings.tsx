@@ -73,7 +73,7 @@ export function SettingsPanel() {
       if (!("gpu" in navigator)) {
         throw new Error("WebGPU is not supported by your browser. Please use Google Chrome or Microsoft Edge.");
       }
-      const adapter = await (navigator as any).gpu.requestAdapter();
+      const adapter = await (navigator as unknown as { gpu: { requestAdapter: () => Promise<{ limits: { maxStorageBufferBindingSize: number } } | null> } }).gpu.requestAdapter();
       if (!adapter) {
         throw new Error("No WebGPU adapter found.");
       }
@@ -85,9 +85,9 @@ export function SettingsPanel() {
       
       setHwStatus("ok");
       setHwMessage(isRTL ? "تم التأكيد: جهازك يدعم WebGPU محلياً" : "Hardware Ok: WebGPU is supported natively");
-    } catch (e: any) {
+    } catch (e: unknown) {
       setHwStatus("error");
-      setHwMessage(e.message || "Hardware check failed");
+      setHwMessage(e instanceof Error ? e.message : "Hardware check failed");
     }
   };
 
@@ -102,8 +102,7 @@ export function SettingsPanel() {
     setDownloadText(isRTL ? "جاري التهيئة..." : "Initializing...");
     
     try {
-      const { CreateWebWorkerMLCEngine } = await import("@mlc-ai/web-llm");
-      // Actually we just import the engine to trigger the download caching in IndexedDB
+      // Import the engine to trigger the download caching in IndexedDB
       const { MLCEngine } = await import("@mlc-ai/web-llm");
       const engine = new MLCEngine();
       
@@ -118,12 +117,13 @@ export function SettingsPanel() {
       setTimeout(() => {
         setIsDownloading(false);
       }, 3000);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[WebLLM Download Error]", e);
       let errorMessage = isRTL ? "حدث خطأ غير معروف." : "An unknown error occurred.";
       let advice = isRTL ? "يرجى المحاولة لاحقاً." : "Please try again later.";
       
-      const msg = e.message?.toLowerCase() || "";
+      const errMessage = e instanceof Error ? e.message : String(e);
+      const msg = errMessage?.toLowerCase() || "";
       if (msg.includes("fetch") || msg.includes("network")) {
         errorMessage = isRTL ? "خطأ في الشبكة أثناء التحميل." : "Network error while downloading the model.";
         advice = isRTL ? "تحقق من اتصالك بالإنترنت وتأكد من عدم وجود جدار حماية يمنع التحميل." : "Please check your internet connection and ensure no firewall is blocking the download.";
@@ -134,7 +134,7 @@ export function SettingsPanel() {
         errorMessage = isRTL ? "فشل تهيئة WebGPU." : "WebGPU initialization failed.";
         advice = isRTL ? "تأكد من دعم متصفحك لتقنية WebGPU وتفعيل تسريع الأجهزة (Hardware Acceleration)." : "Ensure your browser supports WebGPU and hardware acceleration is enabled in settings.";
       } else {
-        errorMessage = isRTL ? `فشل التهيئة: ${e.message}` : `Initialization failed: ${e.message}`;
+        errorMessage = isRTL ? `فشل التهيئة: ${errMessage}` : `Initialization failed: ${errMessage}`;
         advice = isRTL ? "تأكد من اختيار متصفح متوافق (مثل Chrome/Edge)." : "Ensure you are using a compatible browser like Chrome or Edge.";
       }
 

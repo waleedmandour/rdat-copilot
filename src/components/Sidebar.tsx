@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   BookOpen,
   Languages,
-  Database,
   Cpu,
   KeyRound,
   PanelLeftClose,
@@ -54,6 +53,7 @@ export function Sidebar({
   const { theme, setTheme } = useTheme();
 
   // Prevent hydration mismatch — theme is undefined on server
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
 
   const navItems: { id: NavItem; label: string; icon: React.ElementType }[] = [
@@ -78,6 +78,7 @@ export function Sidebar({
           <div className="flex items-center gap-2.5">
             {/* App Logo */}
             <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo.svg"
                 alt="RDAT Copilot"

@@ -95,15 +95,16 @@ Continue from where they left off. Output only the remaining Arabic text (no mor
         setIsGenerating(false);
         console.log(`[Gemini] Burst: "${text.substring(0, 60)}..."`);
         return { text, error: null };
-      } catch (err: any) {
-        if (err.name === "AbortError") {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") {
           setIsGenerating(false);
           return { text: "", error: null };
         }
         console.error("[Gemini] Generation failed:", err);
-        setError(err.message);
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
         setIsGenerating(false);
-        return { text: "", error: err.message };
+        return { text: "", error: message };
       }
     },
     [apiKey, isAvailable]
@@ -163,15 +164,16 @@ Continue from where they left off. Output only the remaining Arabic text (no mor
         setIsGenerating(false);
         console.log(`[Gemini] Full: "${text.substring(0, 80)}..."`);
         return { text, error: null };
-      } catch (err: any) {
-        if (err.name === "AbortError") {
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") {
           setIsGenerating(false);
           return { text: "", error: null };
         }
         console.error("[Gemini] Full translation failed:", err);
-        setError(err.message);
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
         setIsGenerating(false);
-        return { text: "", error: err.message };
+        return { text: "", error: message };
       }
     },
     [apiKey, isAvailable]

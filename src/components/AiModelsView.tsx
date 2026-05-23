@@ -17,7 +17,6 @@ import {
   WifiOff,
   Download,
   Loader2,
-  RefreshCw,
 } from "lucide-react";
 
 interface EngineCard {
