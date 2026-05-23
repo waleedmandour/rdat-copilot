@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software in your research, teaching, or publications, please cite it using the following metadata."
 title: "RDAT Copilot: AI-Powered Translation Co-Writing IDE"
-version: 1.0.0
-date-released: 2026-04-11
+version: 0.1.0
+date-released: 2026-05-23
 url: "https://github.com/waleedmandour/rdat-copilot"
 doi: "10.17605/OSF.IO/GAQ4K"
 authors:

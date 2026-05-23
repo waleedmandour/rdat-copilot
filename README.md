@@ -11,6 +11,8 @@
 A **local-first**, offline-capable Computer-Assisted Translation (CAT) tool built as a Progressive Web App. RDAT Copilot operates like an AI Code Copilot (e.g., GitHub Copilot), but for **English → Arabic** professional translation — showing ghost text suggestions as you type, powered by a 6-channel cascading AI engine.
 
 > **OSF Project Archive:** [https://osf.io/gaq4k/](https://osf.io/gaq4k/)
+>
+> **Live Demo:** [https://waleedmandour.github.io/rdat-copilot/](https://waleedmandour.github.io/rdat-copilot/)
 
 ---
 
@@ -86,7 +88,7 @@ RDAT Copilot uses a four-phase, six-channel cascading suggestion architecture. F
 | **4** | WebLLM (WebGPU) | ~500ms | Excellent (neural) | Yes* | `src/hooks/useWebLLM.ts` + `@mlc-ai/web-llm` |
 | **5** | Gemini (Cloud) | ~3s | Excellent (neural) | No | `src/hooks/useGemini.ts` + `@google/generative-ai` |
 
-*\*Channels 3 requires the local FastAPI backend + Ollama. Channel 4 requires WebGPU + a downloaded model. Neither requires internet.*
+*\*Channel 3 requires the local FastAPI backend + Ollama. Channel 4 requires WebGPU + a downloaded model. Neither requires internet.*
 
 ### Backend Pipeline: Retrieve → Suggest → Validate
 
@@ -139,7 +141,7 @@ ollama pull qwen2.5:7b
 ./scripts/start-backend.sh
 
 # Or start with Docker
-./scripts/start-backend.sh --docker
+docker compose up -d
 ```
 
 Verify at [http://localhost:8000/health](http://localhost:8000/health) — you should see `{"status": "ok", "ollama": true, ...}`.
@@ -180,6 +182,8 @@ docker compose logs -f        # View logs
 docker compose down           # Stop
 docker compose up -d --build  # Rebuild after code changes
 ```
+
+The Docker image uses a multi-stage build with a non-root user, health checks on `/health`, and a persistent `/data` volume for SQLite.
 
 ### Environment Variables
 
@@ -223,7 +227,7 @@ rdat-copilot/
 │   │       ├── segments.py          # Segment tracking CRUD + bulk
 │   │       └── validate.py          # POST /validate
 │   ├── tests/
-│   │   └── test_health.py           # Backend API tests (5 tests)
+│   │   └── test_health.py           # Backend API tests
 │   ├── requirements.txt             # Python dependencies
 │   └── pyproject.toml               # Ruff + pytest config
 ├── scripts/
@@ -284,7 +288,7 @@ rdat-copilot/
 │   └── workers/
 │       └── rag-worker.ts             # Web Worker (Orama + Transformers.js)
 ├── docs/
-│   ├── api-reference.md             # Complete backend API reference (22 endpoints)
+│   ├── api-reference.md             # Complete backend API reference (31 endpoints)
 │   ├── deployment.md                # Deployment guide (GitHub Pages, Docker, Python)
 │   └── user-guide.md                # End-user documentation
 ├── Dockerfile                        # Multi-stage backend image (non-root, health check)
@@ -358,7 +362,7 @@ When the backend is running, interactive API documentation is available at:
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-The backend exposes 22 endpoints across 6 route groups: Health, Translation (SSE + REST), Translation Memory, Glossary, Segments, and Validation. See [`docs/api-reference.md`](docs/api-reference.md) for the complete reference.
+The backend exposes 31 endpoints across 6 route groups: Health (1), Translation (2), Translation Memory (10), Glossary (10), Segments (7), and Validation (1). See [`docs/api-reference.md`](docs/api-reference.md) for the complete reference.
 
 ---
 
@@ -397,6 +401,17 @@ ruff format --check app/
 
 ---
 
+## CI/CD
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `deploy.yml` | Push to `main` (frontend paths) | Build + test + lint → deploy static export to GitHub Pages |
+| `backend-ci.yml` | Push/PR to `main` (backend paths) | Ruff lint + format check + pytest |
+
+Both workflows support `workflow_dispatch` for manual triggering.
+
+---
+
 ## Citation
 
 If you use this software in your research, teaching, or publications, please cite it as follows:
@@ -408,7 +423,7 @@ If you use this software in your research, teaching, or publications, please cit
   year         = {2026},
   url          = {https://github.com/waleedmandour/rdat-copilot},
   doi          = {10.17605/OSF.IO/GAQ4K},
-  version      = {1.0.0},
+  version      = {0.1.0},
   license      = {MIT},
   affiliation  = {Sultan Qaboos University}
 }
