@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
+
 from app.db import get_db
 from app.orchestrator import tm_search, tm_search_fts5
 
@@ -11,6 +11,7 @@ router = APIRouter()
 
 class TMEntryCreate(BaseModel):
     """Create a new TM entry."""
+
     source: str
     target: str
     source_lang: str = "en"
@@ -20,6 +21,7 @@ class TMEntryCreate(BaseModel):
 
 class TMEntryUpdate(BaseModel):
     """Update an existing TM entry."""
+
     source: str | None = None
     target: str | None = None
     source_lang: str | None = None
@@ -29,11 +31,13 @@ class TMEntryUpdate(BaseModel):
 
 class TMBulkImportRequest(BaseModel):
     """Bulk import TM entries."""
-    entries: List[TMEntryCreate]
+
+    entries: list[TMEntryCreate]
 
 
 class TMSearchRequest(BaseModel):
     """Search TM by source text."""
+
     query: str
     limit: int = 5
 

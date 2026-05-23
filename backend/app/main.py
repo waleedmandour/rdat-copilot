@@ -11,7 +11,8 @@ Interactive API docs:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import translate, health, tm, glossary, segments, validate
+
+from app.routes import glossary, health, segments, tm, translate, validate
 
 app = FastAPI(
     title="RDAT Copilot — Local Backend",
@@ -71,4 +72,5 @@ app.include_router(validate.router, tags=["Validation"])
 async def startup():
     """Initialize database and verify Ollama connection on startup."""
     from app.db import init_db
+
     await init_db()

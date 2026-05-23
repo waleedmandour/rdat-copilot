@@ -13,9 +13,9 @@ Dual Storage:
   - IndexedDB (frontend): Cached copy for offline reads, syncs via /sync endpoints
 """
 
-import aiosqlite
 import os
-from datetime import datetime
+
+import aiosqlite
 
 DB_PATH = os.environ.get("RDAT_DB_PATH", "rdat_copilot.db")
 

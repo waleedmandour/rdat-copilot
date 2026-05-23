@@ -6,10 +6,11 @@ Supports SSE-style token streaming for low-latency ghost text.
 Supports glossary-aware prompts for domain-specific translation.
 """
 
-import httpx
 import json
 import os
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
+import httpx
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")
@@ -103,25 +104,27 @@ async def ollama_stream(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient(timeout=30.0) as client,
+            client.stream(
                 "POST",
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json=payload,
                 headers={"Content-Type": "application/json"},
-            ) as response:
-                async for line in response.aiter_lines():
-                    if not line.strip():
-                        continue
-                    try:
-                        chunk = json.loads(line)
-                        token = chunk.get("response", "")
-                        if token:
-                            yield token
-                        if chunk.get("done", False):
-                            break
-                    except json.JSONDecodeError:
-                        continue
+            ) as response,
+        ):
+            async for line in response.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    if token:
+                        yield token
+                    if chunk.get("done", False):
+                        break
+                except json.JSONDecodeError:
+                    continue
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         print(f"[Ollama] Connection error: {e}")
         return

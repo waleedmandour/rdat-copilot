@@ -14,12 +14,13 @@ can show TM matches immediately while LLM streams in.
 
 import json
 import re
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from app.db import get_db
 from app.ollama_client import ollama_stream
 
-
 # ── Phase 1: Retrieve ────────────────────────────────────────────
+
 
 async def tm_search_fts5(source: str, limit: int = 5) -> list[dict]:
     """
@@ -37,7 +38,16 @@ async def tm_search_fts5(source: str, limit: int = 5) -> list[dict]:
         )
         exact = await cursor.fetchall()
         if exact:
-            return [{"id": r["id"], "source": r["source"], "target": r["target"], "score": 1.0, "match_type": "exact"}]
+            row = exact[0]
+            return [
+                {
+                    "id": row["id"],
+                    "source": row["source"],
+                    "target": row["target"],
+                    "score": 1.0,
+                    "match_type": "exact",
+                }
+            ]
 
         # FTS5 full-text search with BM25 ranking
         # Escape double quotes in the query for FTS5
@@ -111,12 +121,14 @@ async def glossary_lookup(source: str) -> list[dict]:
         source_lower = source.lower()
         for term in all_terms:
             if term["source_term"].lower() in source_lower:
-                matched.append({
-                    "source_term": term["source_term"],
-                    "target_term": term["target_term"],
-                    "pos": term["pos"],
-                    "domain": term["domain"],
-                })
+                matched.append(
+                    {
+                        "source_term": term["source_term"],
+                        "target_term": term["target_term"],
+                        "pos": term["pos"],
+                        "domain": term["domain"],
+                    }
+                )
         return matched
     finally:
         await db.close()
@@ -132,6 +144,7 @@ async def tm_search(source: str, limit: int = 3) -> list[dict]:
 
 
 # ── Phase 3: Validate ────────────────────────────────────────────
+
 
 def validate_translation(source: str, target: str) -> dict:
     """
@@ -168,9 +181,9 @@ def validate_translation(source: str, target: str) -> dict:
             score_components.append(1.0)
 
     # Check 2: Number preservation
-    source_numbers = re.findall(r'\d+', source)
+    source_numbers = re.findall(r"\d+", source)
     if source_numbers:
-        target_numbers = re.findall(r'\d+', target)
+        target_numbers = re.findall(r"\d+", target)
         missing_numbers = [n for n in source_numbers if n not in target_numbers]
         if missing_numbers:
             errors.append(f"Numbers missing in translation: {', '.join(missing_numbers)}")
@@ -179,7 +192,7 @@ def validate_translation(source: str, target: str) -> dict:
             score_components.append(1.0)
 
     # Check 3: Arabic character detection
-    arabic_chars = len(re.findall(r'[\u0600-\u06FF]', target))
+    arabic_chars = len(re.findall(r"[\u0600-\u06FF]", target))
     total_chars = len(target.strip())
     if total_chars > 0:
         arabic_ratio = arabic_chars / total_chars
@@ -195,10 +208,27 @@ def validate_translation(source: str, target: str) -> dict:
     # Check 4: Untranslated English words (basic check for long English segments)
     # Only check if the target is long enough to be meaningful
     if target_len > 20:
-        english_words_in_target = re.findall(r'\b[A-Za-z]{4,}\b', target)
+        english_words_in_target = re.findall(r"\b[A-Za-z]{4,}\b", target)
         # Filter out common abbreviations and proper nouns
-        allowed_english = {'AI', 'API', 'URL', 'HTML', 'CSS', 'Web', 'GPU', 'CPU', 'LLM', 'RAG', 'TM', 'GTR'}
-        suspicious = [w for w in english_words_in_target if w not in allowed_english and w.lower() not in allowed_english]
+        allowed_english = {
+            "AI",
+            "API",
+            "URL",
+            "HTML",
+            "CSS",
+            "Web",
+            "GPU",
+            "CPU",
+            "LLM",
+            "RAG",
+            "TM",
+            "GTR",
+        }
+        suspicious = [
+            w
+            for w in english_words_in_target
+            if w not in allowed_english and w.lower() not in allowed_english
+        ]
         if len(suspicious) > 3:
             warnings.append(f"Possible untranslated English words: {', '.join(suspicious[:5])}")
             score_components.append(0.5)
@@ -211,7 +241,9 @@ def validate_translation(source: str, target: str) -> dict:
         score_components.append(0.0)
 
     # Calculate overall score
-    overall_score = sum(score_components) / max(len(score_components), 1) if score_components else 0.5
+    overall_score = (
+        sum(score_components) / max(len(score_components), 1) if score_components else 0.5
+    )
 
     return {
         "is_valid": len(errors) == 0,
@@ -222,6 +254,7 @@ def validate_translation(source: str, target: str) -> dict:
 
 
 # ── Full Pipeline ────────────────────────────────────────────────
+
 
 async def translate_stream(
     source: str,
@@ -251,24 +284,28 @@ async def translate_stream(
         result = tm_results[0]
         # Run validation on the TM match
         validation = validate_translation(source, result["target"])
-        yield json.dumps({
-            "channel": "tm",
-            "text": result["target"],
-            "score": result["score"],
-            "match_type": result.get("match_type", "exact"),
-        })
+        yield json.dumps(
+            {
+                "channel": "tm",
+                "text": result["target"],
+                "score": result["score"],
+                "match_type": result.get("match_type", "exact"),
+            }
+        )
         yield json.dumps({"channel": "validate", **validation})
         yield "[DONE]"
         return
 
     # Lower-confidence TM match — send but continue to LLM
     if tm_results:
-        yield json.dumps({
-            "channel": "tm",
-            "text": tm_results[0]["target"],
-            "score": tm_results[0]["score"],
-            "match_type": tm_results[0].get("match_type", "partial"),
-        })
+        yield json.dumps(
+            {
+                "channel": "tm",
+                "text": tm_results[0]["target"],
+                "score": tm_results[0]["score"],
+                "match_type": tm_results[0].get("match_type", "partial"),
+            }
+        )
 
     # Phase 2: Ollama LLM inference (streaming tokens)
     # Build glossary-aware prompt if we have glossary matches

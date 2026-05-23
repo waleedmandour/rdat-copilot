@@ -3,15 +3,17 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from app.orchestrator import translate_stream, validate_translation
-from app.ollama_client import ollama_translate
+
 from app.db import get_db
+from app.ollama_client import ollama_translate
+from app.orchestrator import translate_stream, validate_translation
 
 router = APIRouter()
 
 
 class TranslateRequest(BaseModel):
     """Request body for translation endpoints."""
+
     source: str
     prefix: str = ""
     max_tokens: int = 30
@@ -19,6 +21,7 @@ class TranslateRequest(BaseModel):
 
 class FullTranslateRequest(BaseModel):
     """Request body for full paragraph translation."""
+
     source: str
     max_tokens: int = 256
     validate: bool = False
@@ -49,6 +52,7 @@ async def translate_stream_endpoint(req: TranslateRequest):
     - If TM score < 0.85, both TM and LLM results are sent
     - Glossary terms are always sent first if found in the source text
     """
+
     async def event_generator():
         async for data in translate_stream(
             source=req.source,

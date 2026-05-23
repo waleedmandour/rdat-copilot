@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from app.orchestrator import validate_translation
 
 router = APIRouter()
@@ -9,6 +10,7 @@ router = APIRouter()
 
 class ValidateRequest(BaseModel):
     """Request body for translation validation."""
+
     source: str
     target: str
 

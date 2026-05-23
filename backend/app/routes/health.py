@@ -1,8 +1,9 @@
 """Route: /health — Backend health check endpoint."""
 
 from fastapi import APIRouter
-from app.ollama_client import check_ollama_available, get_loaded_model
+
 from app.db import get_db
+from app.ollama_client import check_ollama_available, get_loaded_model
 
 router = APIRouter()
 

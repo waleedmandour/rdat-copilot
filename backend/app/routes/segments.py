@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
+
 from app.db import get_db
 
 router = APIRouter()
@@ -10,6 +10,7 @@ router = APIRouter()
 
 class SegmentCreate(BaseModel):
     """Create a new segment."""
+
     source: str
     target: str = ""
     source_lang: str = "en"
@@ -22,6 +23,7 @@ class SegmentCreate(BaseModel):
 
 class SegmentUpdate(BaseModel):
     """Update an existing segment."""
+
     target: str | None = None
     status: str | None = None
     score: float | None = None
@@ -29,7 +31,8 @@ class SegmentUpdate(BaseModel):
 
 class SegmentBulkCreate(BaseModel):
     """Bulk create segments from a source file."""
-    segments: List[SegmentCreate]
+
+    segments: list[SegmentCreate]
     source_file: str | None = None
 
 
@@ -41,8 +44,16 @@ async def create_segment(seg: SegmentCreate):
         cursor = await db.execute(
             "INSERT INTO segments (source, target, source_lang, target_lang, status, score, source_file, segment_index) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (seg.source, seg.target, seg.source_lang, seg.target_lang,
-             seg.status, seg.score, seg.source_file, seg.segment_index),
+            (
+                seg.source,
+                seg.target,
+                seg.source_lang,
+                seg.target_lang,
+                seg.status,
+                seg.score,
+                seg.source_file,
+                seg.segment_index,
+            ),
         )
         await db.commit()
         return {"status": "ok", "id": cursor.lastrowid, "message": "Segment created"}
@@ -65,8 +76,16 @@ async def bulk_create_segments(req: SegmentBulkCreate):
             await db.execute(
                 "INSERT INTO segments (source, target, source_lang, target_lang, status, score, source_file, segment_index) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (seg.source, seg.target, seg.source_lang, seg.target_lang,
-                 seg.status, seg.score, source_file, segment_index),
+                (
+                    seg.source,
+                    seg.target,
+                    seg.source_lang,
+                    seg.target_lang,
+                    seg.status,
+                    seg.score,
+                    source_file,
+                    segment_index,
+                ),
             )
             created += 1
         await db.commit()

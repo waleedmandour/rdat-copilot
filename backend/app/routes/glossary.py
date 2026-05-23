@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List
+
 from app.db import get_db
 
 router = APIRouter()
@@ -10,6 +10,7 @@ router = APIRouter()
 
 class GlossaryEntryCreate(BaseModel):
     """Create a new glossary entry."""
+
     source_term: str
     target_term: str
     source_lang: str = "en"
@@ -21,6 +22,7 @@ class GlossaryEntryCreate(BaseModel):
 
 class GlossaryEntryUpdate(BaseModel):
     """Update an existing glossary entry."""
+
     source_term: str | None = None
     target_term: str | None = None
     source_lang: str | None = None
@@ -32,7 +34,8 @@ class GlossaryEntryUpdate(BaseModel):
 
 class GlossaryBulkImportRequest(BaseModel):
     """Bulk import glossary entries."""
-    entries: List[GlossaryEntryCreate]
+
+    entries: list[GlossaryEntryCreate]
 
 
 @router.get("/glossary/search")
@@ -107,8 +110,15 @@ async def add_glossary_entry(entry: GlossaryEntryCreate):
         cursor = await db.execute(
             "INSERT INTO glossary (source_term, target_term, source_lang, target_lang, pos, domain, notes) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (entry.source_term, entry.target_term, entry.source_lang, entry.target_lang,
-             entry.pos, entry.domain, entry.notes),
+            (
+                entry.source_term,
+                entry.target_term,
+                entry.source_lang,
+                entry.target_lang,
+                entry.pos,
+                entry.domain,
+                entry.notes,
+            ),
         )
         await db.commit()
         return {"status": "ok", "id": cursor.lastrowid, "message": "Glossary entry added"}
@@ -129,12 +139,23 @@ async def bulk_import_glossary(req: GlossaryBulkImportRequest):
             await db.execute(
                 "INSERT INTO glossary (source_term, target_term, source_lang, target_lang, pos, domain, notes) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (entry.source_term, entry.target_term, entry.source_lang, entry.target_lang,
-                 entry.pos, entry.domain, entry.notes),
+                (
+                    entry.source_term,
+                    entry.target_term,
+                    entry.source_lang,
+                    entry.target_lang,
+                    entry.pos,
+                    entry.domain,
+                    entry.notes,
+                ),
             )
             imported += 1
         await db.commit()
-        return {"status": "ok", "imported": imported, "message": f"Imported {imported} glossary entries"}
+        return {
+            "status": "ok",
+            "imported": imported,
+            "message": f"Imported {imported} glossary entries",
+        }
     finally:
         await db.close()
 
